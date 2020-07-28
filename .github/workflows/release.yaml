@@ -48,7 +48,8 @@ jobs:
 
     - name: Prepare PR body
       run: |
-        echo ::set-env name=body::$(git log master..release/ac45f46e --oneline --no-decorate)
+        commit_history=$(git log master..${{ github.ref }} --oneline --no-decorate)
+        echo ::set-env name=body::$commit_history
 
     - name: Create or update pull request
       uses: repo-sync/pull-request@v2
@@ -60,7 +61,7 @@ jobs:
           A new release has been prepared:
 
           ${{ env.body }}
-        pr_assignee: "github-actions"
-        pr_reviewer: "/b2c,fedjabosnic"
+        pr_assignee: "fedjabosnic"
+        pr_reviewer: "fedjabosnic"
         pr_draft: false
         github_token: ${{ secrets.GITHUB_TOKEN }}
