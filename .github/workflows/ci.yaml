@@ -6,7 +6,6 @@ on:
 env:
   TF_VERSION: 0.12.26
   STACKS: "aaa bbb ccc"
-  COMMAND: ${{ github.event.name }}
 
 jobs:
   ci:
@@ -69,11 +68,21 @@ jobs:
       run: |
         echo "${{ steps.plan.outputs.log }}"
 
+    - name: Find Comment
+      uses: peter-evans/find-comment@v1
+      id: comment
+      with:
+        issue-number: ${{ github.pull_request.number }}
+        body-includes: "### Terraform plan"
+
     - name: Confirm results
       if: always()
       uses: peter-evans/create-or-update-comment@v1.4.2
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+        issue-number:  ${{ github.pull_request.number }}
+        comment-number: ${{ steps.comment.outputs.comment-id }}
+        edit-mode: replace
         body: |
           ### Terraform plan succeeded!
 
