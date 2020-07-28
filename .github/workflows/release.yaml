@@ -48,7 +48,7 @@ jobs:
 
     - name: Prepare PR body
       run: |
-        git log origin/master..${{ github.ref }} --oneline --no-decorate > history.log
+        echo $(git log origin/master..${{ github.ref }} --oneline --no-decorate) > history.log
 
         echo ::set-env name=body::$(cat history.log)
 
