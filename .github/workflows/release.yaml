@@ -80,5 +80,7 @@ jobs:
           Release:
 
           ${{ env.body }}
+
+          BOOM!
         assignees: fedjabosnic
         reviewers: fedjabosnic
