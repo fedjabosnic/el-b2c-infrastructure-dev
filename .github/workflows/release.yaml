@@ -36,4 +36,4 @@ jobs:
         pr_assignee: "elb2c-bot"
         pr_reviewer: "/b2c"
         pr_draft: false
-        github_token: ${{ secrets.BOT_TOKEN }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
