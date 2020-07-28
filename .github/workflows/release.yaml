@@ -48,6 +48,7 @@ jobs:
 
     - name: Prepare PR body
       run: |
+        git fetch --all
         commit_history=$(git log "master..${{ github.ref }}" --oneline --no-decorate)
         echo ::set-env name=body::$commit_history
 
