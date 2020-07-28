@@ -1,0 +1,39 @@
+name: cd
+
+on:
+  push:
+    branches:
+      - 'release/**'
+
+env:
+  TF_VERSION: 0.12.26
+  STACKS: "aaa bbb ccc"
+
+jobs:
+  ci:
+    name: ci-terraform
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Pull code
+      uses: actions/checkout@v2
+
+    - name: Prepare PR body
+      run: |
+        echo ::set-env name=body::$(git log master...${{ github.ref }} --oneline --no-decorate)
+
+    - name: Create or update pull request
+      uses: repo-sync/pull-request@v2
+      with:
+        destination_branch: "master"
+        source_branch: "${{ github.ref }}"
+        pr_title: "Release: latest"
+        pr_body: |
+          A new release has been prepared:
+
+          ${{ env.body }}
+        pr_assignee: "elb2c-bot"
+        pr_reviewer: "/b2c"
+        pr_draft: false
+        github_token: ${{ secrets.BOT_TOKEN }}
