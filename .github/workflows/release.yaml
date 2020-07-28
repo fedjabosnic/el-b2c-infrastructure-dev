@@ -48,8 +48,7 @@ jobs:
 
     - name: Prepare PR body
       run: |
-        echo $(git log origin/master..${{ github.ref }} --oneline --no-decorate) > history.log
-
+        echo "$(git log origin/master..${{ github.ref }} --oneline --no-decorate)" > history.log
         echo ::set-env name=body::$(cat history.log)
 
     - name: Create or update pull request
