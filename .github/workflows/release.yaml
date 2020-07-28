@@ -74,7 +74,7 @@ jobs:
         commit-message: Update
         committer: GitHub <noreply@github.com>
         author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-        branch: "${{ github.ref }}"
+        branch: "${{ github.ref }}-1"
         title: '[Example] Release'
         body: |
           Release:
