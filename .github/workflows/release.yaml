@@ -51,17 +51,34 @@ jobs:
         echo "$(git log origin/master..${{ github.ref }} --oneline --no-decorate)" > history.log
         echo ::set-env name=body::$(cat history.log)
 
-    - name: Create or update pull request
-      uses: repo-sync/pull-request@v2
+    # - name: Create or update pull request
+    #   uses: repo-sync/pull-request@v2
+    #   with:
+    #     destination_branch: "master"
+    #     source_branch: "${{ github.ref }}"
+    #     pr_title: "Release: latest"
+    #     pr_body: |
+    #       A new release has been prepared:
+
+    #       ${{ env.body }}
+    #     pr_assignee: "fedjabosnic"
+    #     pr_reviewer: "fedjabosnic"
+    #     pr_draft: false
+    #     github_token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Create Pull Request
+      id: cpr
+      uses: peter-evans/create-pull-request@v3
       with:
-        destination_branch: "master"
-        source_branch: "${{ github.ref }}"
-        pr_title: "Release: latest"
-        pr_body: |
-          A new release has been prepared:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: Update
+        committer: GitHub <noreply@github.com>
+        author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+        branch: "${{ github.ref }}"
+        title: '[Example] Release'
+        body: |
+          Release:
 
           ${{ env.body }}
-        pr_assignee: "fedjabosnic"
-        pr_reviewer: "fedjabosnic"
-        pr_draft: false
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+        assignees: fedjabosnic
+        reviewers: fedjabosnic
