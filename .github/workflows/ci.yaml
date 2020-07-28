@@ -17,7 +17,7 @@ jobs:
     - name: Pull code
       uses: actions/checkout@v2
 
-    - name: Prepare
+    - name: Install tools
       run: |
         # Hack for local debugging
         if ! command -v sudo; then apt-get update -y; apt-get install -y sudo; fi
@@ -39,7 +39,7 @@ jobs:
         GIT_CRYPT_KEY: ${{ secrets.GIT_CRYPT_KEY }}
       run: |
         echo "$GIT_CRYPT_KEY" | base64 -d > ./git-crypt-key
-        git-crypt unlock ./git-crypt-key
+        #git-crypt unlock ./git-crypt-key
         rm ./git-crypt-key
 
     - name: Run `terraform plan`
@@ -69,7 +69,7 @@ jobs:
         )
         done
 
-        echo ::set-output name=log::"$(cat plan.log)"
+        echo ::set-output name=log::$(cat plan.log)
 
     - name: Print `terraform plan`
       run: |
@@ -80,7 +80,7 @@ jobs:
       id: comment
       with:
         issue-number: ${{ github.event.number }}
-        body-includes: Terraform plan
+        comment-author: github-actions
 
     - name: Confirm results
       if: always()
