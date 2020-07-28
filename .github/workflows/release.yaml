@@ -48,7 +48,7 @@ jobs:
 
     - name: Prepare PR body
       run: |
-        echo ::set-env name=body::$(git log master..${{ github.ref }} --oneline --no-decorate)
+        echo ::set-env name=body::$(git log master..release/ac45f46e --oneline --no-decorate)
 
     - name: Create or update pull request
       uses: repo-sync/pull-request@v2
