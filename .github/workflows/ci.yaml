@@ -17,17 +17,6 @@ jobs:
     - name: Pull code
       uses: actions/checkout@v2
 
-    - name: Install tools
-      run: |
-        # Hack for local debugging
-        if ! command -v sudo; then apt-get update -y; apt-get install -y sudo; fi
-
-        sudo apt-get update -y
-        sudo apt-get install -y jq
-        sudo apt-get install -y unzip
-        sudo apt-get install -y nodejs
-        sudo apt-get install -y git-crypt
-
     - name: Install terraform
       uses: hashicorp/setup-terraform@v1.1.0
       with:
@@ -38,23 +27,24 @@ jobs:
       env:
         GIT_CRYPT_KEY: ${{ secrets.GIT_CRYPT_KEY }}
       run: |
+        sudo apt-get install -y git-crypt
         echo "$GIT_CRYPT_KEY" | base64 -d > ./git-crypt-key
         git-crypt unlock ./git-crypt-key
         rm ./git-crypt-key
 
-    - name: Run `terraform plan`
+    - name: Run terraform plan
       run: |
         for stack in ${STACKS}
         do
         (
           cd stack-${stack}
           terraform init -no-color
-          terraform plan -no-color -out planfile
+          terraform plan -no-color -out planfile > plan.out
           terraform show -no-color -json planfile > plan.json
         )
         done
 
-    - name: Process `terraform plan`
+    - name: Process terraform plan
       id: plan
       run: |
         for stack in ${STACKS}
@@ -71,25 +61,12 @@ jobs:
 
         echo ::set-output name=log::$(cat plan.log)
 
-    - name: Print `terraform plan`
-      run: |
-        echo "${{ steps.plan.outputs.log }}"
-
-    - name: Find Comment
-      uses: peter-evans/find-comment@v1
-      id: comment
-      with:
-        issue-number: ${{ github.event.number }}
-        comment-author: github-actions
-
-    - name: Confirm results
-      if: always()
+    - name: Confirm success
+      if: success()
       uses: peter-evans/create-or-update-comment@v1.4.2
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         issue-number:  ${{ github.event.number }}
-        comment-number: ${{ steps.comment.outputs.comment-id }}
-        edit-mode: replace
         body: |
           ### Terraform plan succeeded!
 
@@ -98,3 +75,14 @@ jobs:
           ${{ steps.plan.outputs.log }}
           
           *You can see the complete command output [here](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})*
+
+    - name: Confirm failure
+      if: failure()
+      uses: peter-evans/create-or-update-comment@v1.4.2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        issue-number:  ${{ github.event.number }}
+        body: |
+          ### Terraform plan failed!
+
+          Check the logs [here](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})
