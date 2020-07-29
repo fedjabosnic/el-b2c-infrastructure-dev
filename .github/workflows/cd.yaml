@@ -64,7 +64,8 @@ jobs:
         SHA_ENV=$(find .variables .secrets -type f -print0 | sort -z | xargs -0 shasum | shasum | cut -c -8)
 
         VERSION=${SHA_APP}+${SHA_ENV}
-        PAYLOAD=$(echo "{\"draft\":true,\"name\":\"${VERSION}\",\"tag_name\":\"${VERSION}\",\"target_commitish\":\"${COMMIT_SHA}\",\"body\":\"${DESCRIPTION}\"}")
+        DESCRIPTION=$(cat ${GITHUB_EVENT_PATH} | jq -r '.event.commits[].message')
+        PAYLOAD=$(echo "{\"draft\":true,\"name\":\"${VERSION}\",\"tag_name\":\"${VERSION}\",\"target_commitish\":\"${GITHUB_SHA}\",\"body\":\"${DESCRIPTION}\"}")
         RELEASE=$(curl -X POST https://api.github.com/repos/${GITHUB_REPOSITORY}/releases -H "Authorization: token ${GITHUB_TOKEN}" --data "${PAYLOAD}" | jq '.id')
 
         #echo ::set-env name=RELEASE::$RELEASE
