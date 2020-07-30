@@ -59,12 +59,17 @@ jobs:
         echo "${GIT_CRYPT_KEY}" | base64 -d > ./key && git-crypt unlock ./key && rm ./key
 
     - name: Prepare release
+      env:
+        GITHUB_EVENT: ${{ toJson(github.event) }}
       run: |
         SHA_APP=$(find stack-*             -type f -print0 | sort -z | xargs -0 shasum | shasum | cut -c -8)
         SHA_ENV=$(find .variables .secrets -type f -print0 | sort -z | xargs -0 shasum | shasum | cut -c -8)
 
+        echo "${SHA_APP}+${SHA_ENV}"
+        echo "${GITHUB_EVENT}"
+
         VERSION=${SHA_APP}+${SHA_ENV}
-        DESCRIPTION=$(cat ${GITHUB_EVENT_PATH} | jq -r '.event.commits[].message | split("\n") | .[0]')
+        DESCRIPTION=$(echo ${GITHUB_EVENT} | jq -r '.commits[].message | split("\n") | .[0]')
         PAYLOAD=$(echo "{\"draft\":true,\"name\":\"${VERSION}\",\"tag_name\":\"${VERSION}\",\"target_commitish\":\"${GITHUB_SHA}\",\"body\":\"${DESCRIPTION}\"}")
         RELEASE=$(curl -X POST https://api.github.com/repos/${GITHUB_REPOSITORY}/releases -H "Authorization: token ${GITHUB_TOKEN}" --data "${PAYLOAD}" | jq '.id')
 
@@ -86,7 +91,7 @@ jobs:
       run: |
         curl -X PATCH https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/${RELEASE} -H "Authorization: token ${GITHUB_TOKEN}" --data "{\"draft\":false}"
 
-    - name: Publish release
+    - name: Delete release
       if: failure()
       run: |
         curl -X DELETE https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/${RELEASE} -H "Authorization: token ${GITHUB_TOKEN}"
