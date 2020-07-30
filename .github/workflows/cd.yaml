@@ -70,10 +70,30 @@ jobs:
 
         VERSION=${SHA_APP}+${SHA_ENV}
         DESCRIPTION=$(echo ${GITHUB_EVENT} | jq -r '.commits[].message | split("\n") | .[0]')
-        PAYLOAD=$(echo "{\"draft\":true,\"name\":\"${VERSION}\",\"tag_name\":\"${VERSION}\",\"target_commitish\":\"${GITHUB_SHA}\",\"body\":\"${DESCRIPTION}\"}")
+        PAYLOAD=$(echo "{\"draft\":false,\"name\":\"${VERSION}\",\"tag_name\":\"${VERSION}\",\"target_commitish\":\"${GITHUB_SHA}\",\"body\":\"${DESCRIPTION}\"}")
         RELEASE=$(curl -X POST https://api.github.com/repos/${GITHUB_REPOSITORY}/releases -H "Authorization: token ${GITHUB_TOKEN}" --data "${PAYLOAD}" | jq '.id')
 
+        echo ::set-env name=VERSION::$VERSION
         echo ::set-env name=RELEASE::$RELEASE
+
+    - name: Create deployment
+      id: create_deployment
+      uses: octokit/request-action@v2.x
+      with:
+        route: POST /repos/:repository/deployments
+        repository: ${{ github.repository }}
+        ref: ${{ env.VERSION }}
+        environment: dev
+
+    - name: Set deployment status to 'in progress'
+      id: start_deployment
+      uses: octokit/request-action@v2.x
+      with:
+        route: POST /repos/:repository/deployments/:deployment/statuses
+        repository: ${{ github.repository }}
+        deployment: ${{ fromJson(steps.create_deployment.outputs.data).id }}
+        state: in_progress
+        mediaType: '{"previews": ["flash", "ant-man"]}'
 
     - name: Run terraform apply
       run: |
@@ -86,12 +106,22 @@ jobs:
         )
         done
 
-    - name: Publish release
-      if: success()
-      run: |
-        curl -X PATCH https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/${RELEASE} -H "Authorization: token ${GITHUB_TOKEN}" --data "{\"draft\":false}"
+    - name: Set deployment status
+      if: always()
+      uses: octokit/request-action@v2.x
+      with:
+        route: POST /repos/:repository/deployments/:deployment/statuses
+        repository: ${{ github.repository }}
+        deployment: ${{ fromJson(steps.create_deployment.outputs.data).id }}
+        mediaType: '{"previews": ["ant-man"]}'
+        state: ${{ job.status }}
+        
+    # - name: Publish release
+    #   if: success()
+    #   run: |
+    #     curl -X PATCH https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/${RELEASE} -H "Authorization: token ${GITHUB_TOKEN}" --data "{\"draft\":false}"
 
-    - name: Delete release
-      if: failure()
-      run: |
-        curl -X DELETE https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/${RELEASE} -H "Authorization: token ${GITHUB_TOKEN}"
+    # - name: Delete release
+    #   if: failure()
+    #   run: |
+    #     curl -X DELETE https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/${RELEASE} -H "Authorization: token ${GITHUB_TOKEN}"
