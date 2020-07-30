@@ -73,7 +73,7 @@ jobs:
         PAYLOAD=$(echo "{\"draft\":true,\"name\":\"${VERSION}\",\"tag_name\":\"${VERSION}\",\"target_commitish\":\"${GITHUB_SHA}\",\"body\":\"${DESCRIPTION}\"}")
         RELEASE=$(curl -X POST https://api.github.com/repos/${GITHUB_REPOSITORY}/releases -H "Authorization: token ${GITHUB_TOKEN}" --data "${PAYLOAD}" | jq '.id')
 
-        #echo ::set-env name=RELEASE::$RELEASE
+        echo ::set-env name=RELEASE::$RELEASE
 
     - name: Run terraform apply
       run: |
