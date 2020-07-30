@@ -1,0 +1,88 @@
+name: release
+
+on:
+  push:
+    branches:
+      - 'release/**'
+
+env:
+  TF_VERSION: 0.12.26
+  STACKS: "aaa bbb ccc"
+
+jobs:
+  ci:
+    name: release
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Dump GitHub context
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+      run: echo "$GITHUB_CONTEXT"
+    - name: Dump job context
+      env:
+        JOB_CONTEXT: ${{ toJson(job) }}
+      run: echo "$JOB_CONTEXT"
+    - name: Dump steps context
+      env:
+        STEPS_CONTEXT: ${{ toJson(steps) }}
+      run: echo "$STEPS_CONTEXT"
+    - name: Dump runner context
+      env:
+        RUNNER_CONTEXT: ${{ toJson(runner) }}
+      run: echo "$RUNNER_CONTEXT"
+    - name: Dump strategy context
+      env:
+        STRATEGY_CONTEXT: ${{ toJson(strategy) }}
+      run: echo "$STRATEGY_CONTEXT"
+    - name: Dump matrix context
+      env:
+        MATRIX_CONTEXT: ${{ toJson(matrix) }}
+      run: echo "$MATRIX_CONTEXT"
+
+    - name: Pull code
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        ref: master
+
+    - name: Prepare PR body
+      run: |
+        echo "$(git log origin/master..${{ github.ref }} --oneline --no-decorate)" > history.log
+        echo ::set-env name=body::$(cat history.log)
+
+    # - name: Create or update pull request
+    #   uses: repo-sync/pull-request@v2
+    #   with:
+    #     destination_branch: "master"
+    #     source_branch: "${{ github.ref }}"
+    #     pr_title: "Release: latest"
+    #     pr_body: |
+    #       A new release has been prepared:
+
+    #       ${{ env.body }}
+    #     pr_assignee: "fedjabosnic"
+    #     pr_reviewer: "fedjabosnic"
+    #     pr_draft: false
+    #     github_token: ${{ secrets.GITHUB_TOKEN }}
+
+    # - name: Create Pull Request
+    #   id: cpr
+    #   uses: peter-evans/create-pull-request@v3
+    #   with:
+    #     token: ${{ secrets.GITHUB_TOKEN }}
+    #     commit-message: Update
+    #     committer: GitHub <noreply@github.com>
+    #     author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+    #     base: master
+    #     branch: "${{ github.ref }}"
+    #     title: '[Example] Release'
+    #     body: |
+    #       Release:
+
+    #       ${{ env.body }}
+
+    #       BOOM!
+    #     assignees: fedjabosnic
+    #     reviewers: fedjabosnic

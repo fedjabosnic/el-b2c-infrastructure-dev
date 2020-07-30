@@ -1,0 +1,92 @@
+name: cd
+
+on:
+  push:
+    branches: [master]
+
+env:
+  GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+  TF_VERSION: 0.12.26
+  STACKS: "aaa bbb ccc"
+
+jobs:
+  ci:
+    name: cd
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Dump GitHub context
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+      run: echo "$GITHUB_CONTEXT"
+    - name: Dump job context
+      env:
+        JOB_CONTEXT: ${{ toJson(job) }}
+      run: echo "$JOB_CONTEXT"
+    - name: Dump steps context
+      env:
+        STEPS_CONTEXT: ${{ toJson(steps) }}
+      run: echo "$STEPS_CONTEXT"
+    - name: Dump runner context
+      env:
+        RUNNER_CONTEXT: ${{ toJson(runner) }}
+      run: echo "$RUNNER_CONTEXT"
+    - name: Dump strategy context
+      env:
+        STRATEGY_CONTEXT: ${{ toJson(strategy) }}
+      run: echo "$STRATEGY_CONTEXT"
+    - name: Dump matrix context
+      env:
+        MATRIX_CONTEXT: ${{ toJson(matrix) }}
+      run: echo "$MATRIX_CONTEXT"
+
+
+    - name: Pull code
+      uses: actions/checkout@v2
+
+    - name: Install terraform
+      uses: hashicorp/setup-terraform@v1.1.0
+      with:
+        terraform_wrapper: false
+        terraform_version: ${{ env.TF_VERSION }}
+
+    - name: Unlock secrets
+      env:
+        GIT_CRYPT_KEY: ${{ secrets.GIT_CRYPT_KEY }}
+      run: |
+        sudo apt-get install -y git-crypt
+        echo "${GIT_CRYPT_KEY}" | base64 -d > ./key && git-crypt unlock ./key && rm ./key
+
+    - name: Prepare release
+      run: |
+        SHA_APP=$(find stack-*             -type f -print0 | sort -z | xargs -0 shasum | shasum | cut -c -8)
+        SHA_ENV=$(find .variables .secrets -type f -print0 | sort -z | xargs -0 shasum | shasum | cut -c -8)
+
+        VERSION=${SHA_APP}+${SHA_ENV}
+        DESCRIPTION=$(cat ${GITHUB_EVENT_PATH} | jq -r '.event.commits[].message | split("\n") | .[0]')
+        PAYLOAD=$(echo "{\"draft\":true,\"name\":\"${VERSION}\",\"tag_name\":\"${VERSION}\",\"target_commitish\":\"${GITHUB_SHA}\",\"body\":\"${DESCRIPTION}\"}")
+        RELEASE=$(curl -X POST https://api.github.com/repos/${GITHUB_REPOSITORY}/releases -H "Authorization: token ${GITHUB_TOKEN}" --data "${PAYLOAD}" | jq '.id')
+
+        #echo ::set-env name=RELEASE::$RELEASE
+
+    - name: Run terraform apply
+      run: |
+        for stack in ${STACKS}
+        do
+        (
+          cd stack-${stack}
+          terraform init -no-color
+          terraform apply -no-color -auto-approve > apply.out
+        )
+        done
+
+    - name: Publish release
+      if: success()
+      run: |
+        curl -X PATCH https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/${RELEASE} -H "Authorization: token ${GITHUB_TOKEN}" --data "{\"draft\":false}"
+
+    - name: Publish release
+      if: failure()
+      run: |
+        curl -X DELETE https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/${RELEASE} -H "Authorization: token ${GITHUB_TOKEN}"
