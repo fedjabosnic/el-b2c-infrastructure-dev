@@ -39,7 +39,7 @@ jobs:
     - name: Dump matrix context
       env:
         MATRIX_CONTEXT: ${{ toJson(matrix) }}
-      run: echo "$MATRIX_CONTEXT" && exit 1
+      run: echo "$MATRIX_CONTEXT"
 
 
     - name: Pull code
@@ -64,7 +64,7 @@ jobs:
         SHA_ENV=$(find .variables .secrets -type f -print0 | sort -z | xargs -0 shasum | shasum | cut -c -8)
 
         VERSION=${SHA_APP}+${SHA_ENV}
-        DESCRIPTION=$(cat ${GITHUB_EVENT_PATH} | jq -r '.event.commits[].message')
+        DESCRIPTION=$(cat ${GITHUB_EVENT_PATH} | jq -r '.event.commits[].message | split("\n") | .[0]')
         PAYLOAD=$(echo "{\"draft\":true,\"name\":\"${VERSION}\",\"tag_name\":\"${VERSION}\",\"target_commitish\":\"${GITHUB_SHA}\",\"body\":\"${DESCRIPTION}\"}")
         RELEASE=$(curl -X POST https://api.github.com/repos/${GITHUB_REPOSITORY}/releases -H "Authorization: token ${GITHUB_TOKEN}" --data "${PAYLOAD}" | jq '.id')
 
@@ -85,3 +85,8 @@ jobs:
       if: success()
       run: |
         curl -X PATCH https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/${RELEASE} -H "Authorization: token ${GITHUB_TOKEN}" --data "{\"draft\":false}"
+
+    - name: Publish release
+      if: failure()
+      run: |
+        curl -X DELETE https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/${RELEASE} -H "Authorization: token ${GITHUB_TOKEN}"
