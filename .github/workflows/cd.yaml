@@ -84,6 +84,7 @@ jobs:
         repository: ${{ github.repository }}
         ref: ${{ env.VERSION }}
         environment: dev
+        required_contexts: '[]'
 
     - name: Set deployment status to 'in progress'
       id: start_deployment
@@ -105,6 +106,8 @@ jobs:
           terraform apply -no-color -auto-approve > apply.out
         )
         done
+
+        exit 1
 
     - name: Set deployment status
       if: always()

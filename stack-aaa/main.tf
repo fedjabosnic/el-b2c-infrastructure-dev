@@ -17,7 +17,7 @@ resource "null_resource" "figments" {
     }
 
     provisioner "local-exec" {
-      command = "echo \"Pretending on ${var.environment}/${var.region}\""
+      command = "echo \"Hanging on ${var.environment}/${var.region}\""
     }
 }
 
